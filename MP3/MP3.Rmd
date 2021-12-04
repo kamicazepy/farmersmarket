@@ -1,0 +1,136 @@
+
+---
+title: "SDS192 Mini-Project 3"
+date: "Tuesday, November 23rd, 2021"
+output:
+  pdf_document:
+    toc: no
+    df_print: paged
+---
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+# Do not edit this chunk unless you know what you are doing
+knitr::opts_chunk$set(
+  echo = TRUE, message = FALSE, warning = FALSE, fig.width = 16/2, fig.height = 9/2
+)
+```
+
+```{r, echo=FALSE}
+# Load all packages here
+library(tidyverse)
+library(sf)
+library(USAboundaries)
+library(scales)
+library(stringr)
+```
+
+## Administrative info:
+
+* Section number: 02
+* Group number: 04
+* Group leader name: Camila Maldonado Franco
+* Group leader academic email: cmaldonadofranco@smith.edu
+* Partner name: Waleska Reyes
+* Partner academic email: wreyes@smith.edu
+
+
+```{r, echo=FALSE}
+# Load all your data here. Be sure to be in MP3 RStudio Project mode so that R
+# knows where to find all data. Here is an example
+library(readr)
+Export <- read_csv("Export.csv")
+income_data <- read_csv("income_data.csv")
+library(maps)
+
+# Load bike trails shapefile and convert to sf object:
+farmers_market <- Export %>% 
+  select(x,y,County,State) %>% 
+  filter(State == "Massachusetts")
+farmers_market
+
+map_data_income <- income_data %>% 
+  filter(State == "Massachusetts") %>% 
+  select(FIPS_Code,Median_Household_Income_2019)%>% 
+  group_by(FIPS_Code) 
+
+  
+
+# Load MA cities from CSV and convert to sf object:
+farmers_market_sf <- farmers_market %>% 
+  st_as_sf(coords = c("x", "y"), crs = 4326)
+farmers_market_sf
+
+
+
+
+```
+
+
+
+# Q1: Peer evaluation Google Form
+
+Fill out the peer evaluation Google Form to receive credit.
+
+
+
+# Q2: Introduction
+
+Write no more than 250 words giving the data's context and source here. References should be generated using R Markdown footnotes, as you did in MP2.
+
+With this map, we are comparing farmer’s market locations in 2021 and average income per Massachusetts county in 2019. Farmer’s markets are intended to bridge the gap between farmers and customers, eliminating the process of delivery which is harmful to the environment. Not to mention, the added benefits of supporting local produce and buying sustainably. Also, farmer’s markets are meant to be affordable due to the cut costs that come from selling directly from farmer to consumer. This way, it is meant to be accessible for low income customers. We will compare average income per county in relation to the amount of farmer’s markets in said county. Thus, we are evaluating if the affordability of the farmer's market is accessible to low income communities. 
+
+Data used: 
+^(https://catalog.data.gov/dataset/farmers-markets-directory-and-geographic-data)
+^(https://www.census.gov/library/publications/2020/demo/p60-270.html)
+
+
+
+# Q3: Your map
+
+```{r, echo = TRUE}
+#Put code to create your static map here:
+USA_map <-  maps::map("state", plot = FALSE, fill = TRUE)
+
+USA_sf <- USA_map %>% 
+  st_as_sf(crs = 4326)
+
+USA_map <-  maps::map("state", plot = FALSE, fill = TRUE)
+
+map_data_mass <- 
+  USAboundaries::us_counties(resolution = "low", states = c("massachusetts")) %>% 
+  select(-state_name)
+
+#RENAME
+map_data_mass <- map_data_income %>% 
+  inner_join(map_data_mass, by = c("FIPS_Code" = "geoid"))
+  
+
+my_title <- "Farmers Market distribution based on Median Household Income in Massachusetts"
+
+
+#FINAL PLOT
+ggplot() +
+  geom_sf(data = map_data_mass, aes(geometry = geometry, fill = Median_Household_Income_2019),
+          color = "white",
+          linetype = 1,
+          lwd = 0.25) +
+  geom_sf(data = farmers_market_sf, aes( geometry = geometry), size = 1) + 
+  guides(fill = guide_legend(title.position = "top")) +
+  scale_fill_gradient(low="#F0F9E8", high="#0868AC",labels=dollar) +   
+  scale_color_brewer(palette = "GnBu") + 
+  theme(legend.position = "right", axis.text.x = element_blank(), axis.text.y = element_blank(), axis.ticks = element_blank(), rect = element_blank())+
+  guides(fill = guide_legend(title.position = "top", direction = "vertical")) + labs(title = str_wrap(my_title, 60), fill = "Median Household Income in 2019") 
+```
+
+
+# Additional Analysis
+
+((Optional) If you have any additional analysis you would like to add, add it here. This is optional.
+
+Even though this map shows that the most populated counties by farmers markets are those where the median household income is 100K dollars, this could drive us to the conclusion that most of the buyers from the farmers market will be wealthy people. However, it should be noted as well that most farmers markets are usually located in highly populated urban areas such as Plymouth County because these communities lack access to fresh daily products. Some other places in the US have started to create systems with coupons in order to make these markets more accessible to the poor class. 
+The Washington Post also highlighted an important fact in a published article “Moreover, it’s not that farmers market prices are too high but that the supermarket prices with which they compete are too low.”This is the most common issue that citizens face, where super processed food is the most affordable thing for them to eat, yet not the best option for their health. 
+However, we think that more farmers markets should be taken to counties where food deserts exist in order to reduce food insecurity and truly make the purpose of farmers markets possible. This is to bring accessible organic food products to all people, no matter their income, and not just a tourist attraction every weekend. 
+
+
+^[https://www.washingtonpost.com/opinions/how-to-bring-farmers-markets-to-the-urban-poor/2013/09/20/23cbe10c-14ac-11e3-880b-7503237cc69d_story.html]
+
